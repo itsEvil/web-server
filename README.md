@@ -8,8 +8,7 @@
 
 ### Routing
 Target routes are passed into a StringHashMap. <br>
-If target route is found a function ptr is returned <br>
-which the handler can get assets from that route. <br>
+If target route is found a function ptr is returned which the handler can get assets from that route.
 
 ### Notes
 
