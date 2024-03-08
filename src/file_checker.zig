@@ -31,6 +31,9 @@ pub fn main() !void {
             continue;
         }
 
+        if (!std.mem.startsWith(u8, entry.path, "pages\\"))
+            continue;
+
         const stat = if (is_zig_11)
             try iter_dir.dir.statFile(entry.path)
         else
@@ -38,7 +41,7 @@ pub fn main() !void {
 
         const last_modified = stat.mtime;
         const duration = now - last_modified;
-        if (duration < std.time.ns_per_min * 3 and std.mem.startsWith(u8, entry.path, "pages\\")) {
+        if (duration < std.time.ns_per_min * 3) {
             try root.reload();
             print("Last modified: {d} seconds ago, size:{d} bytes, filename: {s}\n", .{
                 @divTrunc(duration, std.time.ns_per_s),

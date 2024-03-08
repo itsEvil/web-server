@@ -3,6 +3,7 @@ const http = std.http;
 const Allocator = std.mem.Allocator;
 
 const index_page = @import("pages/index.zig");
+const error_page = @import("pages/error.zig");
 
 const log_utils = @import("logger.zig");
 const log = log_utils.get(.main);
@@ -11,6 +12,8 @@ const file_checker = @import("file_checker.zig");
 
 const server_addr = "127.0.0.1";
 const server_port = 8080;
+
+const hot_reload: bool = true;
 
 var route_map: std.StringHashMap(*const fn (send: usize) []const u8) = undefined;
 var allocator: std.mem.Allocator = undefined;
@@ -21,12 +24,10 @@ pub fn main() !void {
     allocator = gpa.allocator();
 
     try index_page.init(allocator);
+    try error_page.init(allocator);
 
     route_map = std.StringHashMap(*const fn (send: usize) []const u8).init(allocator);
-    try route_map.put("/", index_page.get);
-    try route_map.put("/index", index_page.get);
-    try route_map.put("/index.html", index_page.get);
-    try route_map.put("/style.css", index_page.get);
+    try addRoutes();
     //try route_map.put("/favicon.ico", index_page.get);
 
     var server = http.Server.init(allocator, .{});
@@ -46,11 +47,22 @@ pub fn main() !void {
     };
 }
 
+pub fn addRoutes() !void {
+    try route_map.put("/", index_page.get);
+    try route_map.put("/index", index_page.get);
+    try route_map.put("/index.html", index_page.get);
+    try route_map.put("/style.css", index_page.get);
+    try route_map.put("/error", error_page.get);
+}
+
 pub fn reload() !void {
     log.warn("reloading pages", .{});
 
     index_page.deinit();
     try index_page.init(allocator);
+
+    error_page.deinit();
+    try error_page.init(allocator);
 }
 
 // Run the server and handle incoming requests.
@@ -62,7 +74,8 @@ fn runServer(server: *http.Server) !void {
         });
         defer response.deinit();
 
-        try file_checker.main();
+        if (hot_reload)
+            try file_checker.main();
 
         // Handle errors during request processing.
         response.wait() catch |err| switch (err) {
@@ -104,12 +117,14 @@ fn handleRequest(response: *http.Server.Response) !void {
 
 fn findRoute(response: *http.Server.Response) !void {
     const target = response.request.target;
-    log.warn("target:'{s}'", .{target});
+    try sendPage(target, response);
+}
 
-    const endpoint_found = route_map.get(target);
+fn sendPage(endpoint: []const u8, response: *http.Server.Response) !void {
+    const endpoint_found = route_map.get(endpoint);
     if (endpoint_found) |endpoint_fn| {
         var buf: []const u8 = endpoint_fn(1);
-        if (std.mem.endsWith(u8, target, ".css")) {
+        if (std.mem.endsWith(u8, endpoint, ".css")) {
             try response.headers.append("content-type", "text/css");
             buf = endpoint_fn(0);
         } else {
@@ -121,14 +136,9 @@ fn findRoute(response: *http.Server.Response) !void {
         if (response.request.method != .HEAD) {
             try response.writeAll(buf);
         }
-    } else try sendErrorPage(response);
+    } else return error.NotFound;
 }
 
 fn sendErrorPage(response: *http.Server.Response) !void {
-    if (response.state == .waited) //If waited then we need to send headers
-        try response.do();
-
-    if (response.request.method != .HEAD) {
-        try response.writeAll("Page not found");
-    }
+    try sendPage("/error", response);
 }
