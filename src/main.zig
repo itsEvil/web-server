@@ -24,11 +24,10 @@ pub fn main() !void {
     allocator = gpa.allocator();
 
     try index_page.init(allocator);
-    try error_page.init(allocator);
+    try error_page.init(allocator, .{});
 
     route_map = std.StringHashMap(*const fn (send: usize) []const u8).init(allocator);
     try addRoutes();
-    //try route_map.put("/favicon.ico", index_page.get);
 
     var server = http.Server.init(allocator, .{});
     defer server.deinit();
@@ -64,7 +63,7 @@ pub fn reload() !void {
     try index_page.init(allocator);
 
     error_page.deinit();
-    try error_page.init(allocator);
+    try error_page.init(allocator, .{});
 }
 
 // Run the server and handle incoming requests.
@@ -110,7 +109,9 @@ fn handleRequest(response: *http.Server.Response) !void {
 
     findRoute(response) catch |err| {
         log.err("FindRoute::{any}", .{err});
-        try sendErrorPage(response);
+        if (std.mem.endsWith(u8, response.request.target, ".css")) {
+            try sendErrorCss(response);
+        } else try sendErrorPage(response);
     };
 
     if (response.state == .responded)
@@ -144,4 +145,8 @@ fn sendPage(endpoint: []const u8, response: *http.Server.Response) !void {
 
 fn sendErrorPage(response: *http.Server.Response) !void {
     try sendPage("/error", response);
+}
+
+fn sendErrorCss(response: *http.Server.Response) !void {
+    try sendPage("/error/style.css", response);
 }
