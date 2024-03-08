@@ -14,5 +14,4 @@ which the handler can get assets from that route. <br>
 ### Notes
 
 - You have to add routes for them to be found in main.main().zig <br>
-- You have to deinit and init each page <br>
-in main.reload().zig for hot reload to work
+- You have to deinit and init each page in main.reload().zig for hot reload to work
