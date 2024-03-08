@@ -15,3 +15,4 @@ which the handler can get assets from that route. <br>
 
 - You have to add routes for them to be found in main.main().zig <br>
 - You have to deinit and init each page in main.reload().zig for hot reload to work
+- Hot reloading only reloads a file which has been modified in the last 3 minutes
