@@ -14,8 +14,6 @@ pub fn init(allocator: std.mem.Allocator) !void {
 
     css = try Reader.readFile("index\\style.css", allocator);
     html = try Reader.readFile("index\\index.html", allocator);
-
-    log.warn("css:{s}, html:{s}", .{ css, html });
 }
 
 pub fn deinit() void {

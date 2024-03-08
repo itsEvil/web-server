@@ -53,6 +53,8 @@ pub fn addRoutes() !void {
     try route_map.put("/index.html", index_page.get);
     try route_map.put("/style.css", index_page.get);
     try route_map.put("/error", error_page.get);
+    try route_map.put("/error/page.html", error_page.get);
+    try route_map.put("/error/style.css", error_page.get);
 }
 
 pub fn reload() !void {
@@ -121,6 +123,7 @@ fn findRoute(response: *http.Server.Response) !void {
 }
 
 fn sendPage(endpoint: []const u8, response: *http.Server.Response) !void {
+    log.debug("endpoint:{s}", .{endpoint});
     const endpoint_found = route_map.get(endpoint);
     if (endpoint_found) |endpoint_fn| {
         var buf: []const u8 = endpoint_fn(1);
