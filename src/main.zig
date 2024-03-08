@@ -114,6 +114,19 @@ fn handleRequest(response: *http.Server.Response) !void {
         try response.headers.append("connection", "keep-alive");
     }
 
+    if (std.mem.endsWith(u8, response.request.target, ".ico")) {
+        try response.headers.append("content-type", "image");
+        if (response.state == .waited) //If waited then we need to send headers
+            try response.do();
+
+        try response.writeAll(""); //send favicon.ico
+
+        if (response.state == .responded)
+            try response.finish();
+
+        return;
+    }
+
     const isCss = std.mem.endsWith(u8, response.request.target, ".css");
     if (isCss) {
         try response.headers.append("content-type", "text/css");
@@ -121,13 +134,34 @@ fn handleRequest(response: *http.Server.Response) !void {
 
     findRoute(response, .{ .send = (if (isCss) 0 else 1) }) catch |err| {
         log.err("FindRoute::{any}", .{err});
+        log.err("server error: {}\n", .{err});
         if (isCss) {
             try sendErrorCss(response);
-        } else try sendErrorPage(response, .{ .error_int = "404", .error_desc = "Page not found" });
+        } else {
+            switch (err) {
+                error.NotFound => {},
+                else => {
+                    if (@errorReturnTrace()) |trace| {
+                        std.debug.dumpStackTrace(trace.*);
+                    }
+                },
+            }
+
+            const err_options = getErrorOptions(err);
+
+            try sendErrorPage(response, err_options);
+        }
     };
 
     if (response.state == .responded)
         try response.finish();
+}
+
+fn getErrorOptions(err: anyerror) ErrorOptions {
+    return switch (err) {
+        error.NotFound => ErrorOptions{ .error_int = "404", .error_desc = "Page not found" },
+        else => ErrorOptions{ .error_int = "NaN", .error_desc = "Check console for stack trace" },
+    };
 }
 
 fn findRoute(response: *http.Server.Response, options: EndpointOptions) !void {
