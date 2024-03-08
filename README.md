@@ -14,4 +14,4 @@ If target route is found a function ptr is returned which the handler can get as
 
 - You have to add routes for them to be found in main.main().zig <br>
 - You have to deinit and init each page in main.reload().zig for hot reload to work
-- Hot reloading only reloads a file which has been modified in the last 3 minutes
+- Hot reloading only reloads a file which has been modified in the last 3 minutes when you send a request
