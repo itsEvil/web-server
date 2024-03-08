@@ -3,6 +3,7 @@ const Response = std.http.Server.Response;
 const Reader = @import("../file_utils.zig");
 const logger = @import("../logger.zig");
 const log = logger.get(.index);
+const root = @import("root");
 
 var css: []u8 = "";
 var html: []u8 = "";
@@ -21,6 +22,6 @@ pub fn deinit() void {
     alloc.free(html);
 }
 
-pub fn get(send: usize) []const u8 {
-    return if (send == 0) css else if (send == 1) html else unreachable;
+pub fn get(options: root.EndpointOptions) []const u8 {
+    return if (options.send == 0) css else if (options.send == 1) html else unreachable;
 }
