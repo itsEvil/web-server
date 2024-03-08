@@ -121,7 +121,7 @@ fn findRoute(response: *http.Server.Response) !void {
         if (response.request.method != .HEAD) {
             try response.writeAll(buf);
         }
-    }
+    } else try sendErrorPage(response);
 }
 
 fn sendErrorPage(response: *http.Server.Response) !void {
